@@ -35,12 +35,18 @@ Create `Plans.md` in the project root (or update if it exists) with this structu
 - [ ] [Specific, testable criterion 3]
 
 ### Tasks
-- [ ] **Task 1**: [Description] — files: `[file1]`, `[file2]`
-- [ ] **Task 2**: [Description] — files: `[file1]`
-- [ ] **Task 3**: [Description] — files: `[file1]`
 
-### Dependencies
-[Task ordering constraints, if any]
+#### Parallel Group 1 (can run simultaneously)
+- [ ] **Task 1**: [Description] — files: `[file1]`, `[file2]`
+- [ ] **Task 2**: [Description] — files: `[file3]`
+- [ ] **Task 3**: [Description] — files: `[file4]`, `[file5]`
+
+#### Sequential (must run after Group 1)
+- [ ] **Task 4**: [Description] — depends on: Task 1, Task 2 — files: `[file6]`
+
+#### Parallel Group 2 (can run simultaneously, after Task 4)
+- [ ] **Task 5**: [Description] — files: `[file7]`
+- [ ] **Task 6**: [Description] — files: `[file8]`
 
 ### Risks
 [Technical risks, unknowns, things to investigate first]
@@ -50,15 +56,16 @@ Create `Plans.md` in the project root (or update if it exists) with this structu
 
 - Each task should be a self-contained unit of work (completable by one agent)
 - List the specific files each task will touch
-- Keep tasks small: 5-6 tasks is ideal for parallel execution
-- Flag tasks that must be sequential vs. can be parallel
+- Keep tasks small: 3-5 tasks per parallel group is ideal
+- **Explicitly group tasks as parallel or sequential** — `/work` uses these groups to decide execution strategy
+- Tasks are parallel-safe when they touch **different files** — if two tasks modify the same file, they must be sequential
 - Include acceptance criteria that are mechanically verifiable (tests, build, lint)
 
 ## Step 4: Confirm with User
 
 Present the plan and ask:
 - Does this cover everything?
-- Are the tasks the right size?
+- Are the parallel groups correct? (no file conflicts within a group)
 - Any ordering constraints I missed?
 
 After approval, the user can run `/work` to start implementation.

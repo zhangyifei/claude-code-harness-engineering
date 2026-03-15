@@ -2,9 +2,9 @@
 description: "Multi-perspective code review. Trigger: user says 'review', 'check my code', 'review changes', or wants quality feedback."
 ---
 
-# /review — Code Review
+# /review — Parallel Code Review
 
-Review recent changes from 4 perspectives: security, performance, quality, accessibility.
+Review recent changes from 4 perspectives simultaneously: security, performance, quality, accessibility.
 
 ## Step 1: Identify Changes
 
@@ -13,54 +13,120 @@ Determine what to review:
 2. If user specifies files: review those files
 3. If working from `Plans.md`: review files changed by completed tasks
 
-## Step 2: Read Context
+Collect the list of changed files and their diffs. This context will be passed to all 4 review agents.
 
-1. Read `docs/CONVENTIONS.md` for coding patterns to check against
-2. Read `docs/ARCHITECTURE.md` for architectural boundaries
-3. Read `docs/QUALITY.md` for known gaps
+## Step 2: Read Shared Context
 
-## Step 3: Review from 4 Perspectives
+Read these files and include their content in each agent's prompt:
+1. `docs/CONVENTIONS.md` — coding patterns to check against
+2. `docs/ARCHITECTURE.md` — architectural boundaries
+3. `docs/QUALITY.md` — known gaps
 
-### Security
-- SQL injection, XSS, command injection
-- Hardcoded secrets or credentials
-- Authentication/authorization gaps
-- Input validation at system boundaries
+## Step 3: Spawn 4 Review Agents in Parallel
 
-### Performance
-- N+1 queries or unnecessary loops
-- Memory leaks (unclosed resources, growing collections)
-- Unnecessary re-renders (React) or recomputation
-- Missing caching where beneficial
+**CRITICAL**: All 4 agents MUST be spawned in a single message block so they run simultaneously.
 
-### Quality
-- Follows project conventions (from `docs/CONVENTIONS.md`)
-- Clear naming, single responsibility
-- Error handling (no swallowed errors)
-- Test coverage for new logic
+```
+# In a SINGLE message, spawn all 4 review agents:
 
-### Accessibility (for UI projects)
-- ARIA labels on interactive elements
-- Keyboard navigation support
-- Color contrast
-- Screen reader compatibility
+Agent(
+  prompt: "SECURITY REVIEW of the following changes: [diff/files].
+    Project conventions: [from CONVENTIONS.md].
+    Check for:
+    - SQL injection, XSS, command injection
+    - Hardcoded secrets, API keys, credentials
+    - Authentication/authorization gaps
+    - Input validation at system boundaries
+    - Path traversal, SSRF, insecure deserialization
+    Return: list of issues with severity (critical/major/minor) and file:line references.
+    If no issues, return 'PASS: no security issues found'.",
+  agent: ".claude/agents/research.md"
+)
 
-## Step 4: Verdict
+Agent(
+  prompt: "PERFORMANCE REVIEW of the following changes: [diff/files].
+    Project conventions: [from CONVENTIONS.md].
+    Check for:
+    - N+1 queries or unnecessary loops
+    - Memory leaks (unclosed resources, growing collections)
+    - Unnecessary re-renders (React) or recomputation
+    - Missing caching or memoization where beneficial
+    - Bundle size impact (large imports, tree-shaking)
+    Return: list of issues with severity and file:line references.
+    If no issues, return 'PASS: no performance issues found'.",
+  agent: ".claude/agents/research.md"
+)
+
+Agent(
+  prompt: "QUALITY REVIEW of the following changes: [diff/files].
+    Project conventions: [from CONVENTIONS.md].
+    Architecture: [from ARCHITECTURE.md].
+    Known gaps: [from QUALITY.md].
+    Check for:
+    - Follows project conventions and golden principles
+    - Clear naming, single responsibility
+    - Error handling (no swallowed errors, no bare catch)
+    - Test coverage for new logic
+    - Dead code, unused imports, leftover debug statements
+    Return: list of issues with severity and file:line references.
+    If no issues, return 'PASS: no quality issues found'.",
+  agent: ".claude/agents/research.md"
+)
+
+Agent(
+  prompt: "ACCESSIBILITY REVIEW of the following changes: [diff/files].
+    Check for (skip if project has no UI layer):
+    - ARIA labels on interactive elements (buttons, links, inputs)
+    - Keyboard navigation support (focus management, tab order)
+    - Color contrast (WCAG 2.1 AA minimum 4.5:1 text, 3:1 large text)
+    - Screen reader compatibility (alt text, semantic HTML, live regions)
+    - Form labels and error announcements
+    Return: list of issues with severity and file:line references.
+    If no UI changes or no issues, return 'PASS: no accessibility issues found'.",
+  agent: ".claude/agents/research.md"
+)
+```
+
+Note: Review agents use the **research** agent template (read-only). They must NOT modify any files.
+
+## Step 4: Collect and Merge Results
+
+After all 4 agents return, merge their findings into a single verdict:
 
 ```
 REVIEW: [APPROVE | REQUEST_CHANGES]
 
-Critical Issues:
-- [severity: critical/major/minor] [file:line] [description]
+Security:  [PASS | N issues]
+- [critical] [file:line] [description]
 
-Recommendations (non-blocking):
-- [file:line] [suggestion]
+Performance:  [PASS | N issues]
+- [major] [file:line] [description]
+
+Quality:  [PASS | N issues]
+- [minor] [file:line] [description]
+
+Accessibility:  [PASS | N issues]
+- [minor] [file:line] [description]
 
 Summary:
 [1-2 sentence overall assessment]
 ```
 
-## Judgment Criteria
+## Verdict Logic
 
-- **APPROVE**: No critical or major issues. Minor issues noted but non-blocking.
-- **REQUEST_CHANGES**: Any critical or major issue. Security vulnerabilities are always critical.
+```
+Any critical issue?
+├── Yes → REQUEST_CHANGES
+└── No → Any major issue?
+    ├── Yes → REQUEST_CHANGES
+    └── No → APPROVE (with minor issues noted)
+```
+
+Security vulnerabilities are always **critical**. Performance and quality issues start at **major** unless they're cosmetic. Accessibility issues start at **minor** unless they block core functionality.
+
+## After REQUEST_CHANGES
+
+If the verdict is REQUEST_CHANGES, suggest running `/work` to fix the issues:
+- List each issue as a task
+- Group independent fixes as parallel
+- Run `/review` again after fixes

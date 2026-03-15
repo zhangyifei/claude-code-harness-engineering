@@ -201,6 +201,36 @@ Main Agent (parent)
 Main Agent summarizes to user
 ```
 
+### Parallel Execution
+
+Claude Code supports true parallelism when multiple Agent calls are made **in a single message**. This is the key mechanism — agents spawned across separate messages run sequentially.
+
+#### Worktree Isolation
+
+Use `isolation: "worktree"` for parallel implementation agents. Each agent gets its own copy of the repo, so file writes cannot conflict:
+
+```
+# SINGLE message with 3 parallel Agent calls:
+Agent(task: "Task 1", agent: "implementation.md", isolation: "worktree")
+Agent(task: "Task 2", agent: "implementation.md", isolation: "worktree")
+Agent(task: "Task 3", agent: "implementation.md", isolation: "worktree")
+# All 3 run simultaneously, each in its own repo copy
+```
+
+After all agents return, merge their worktree branches into the main working tree.
+
+#### Read-only agents don't need worktrees
+
+Review agents (read-only) can run in parallel without worktree isolation since they don't modify files:
+
+```
+# SINGLE message with 4 parallel review agents:
+Agent(task: "Security review", agent: "research.md")
+Agent(task: "Performance review", agent: "research.md")
+Agent(task: "Quality review", agent: "research.md")
+Agent(task: "Accessibility review", agent: "research.md")
+```
+
 ### Team Composition (for parallel work)
 
 From claude-code-harness:
@@ -209,6 +239,15 @@ From claude-code-harness:
 - Reviewer (1) does read-only review after all workers complete
 - On REQUEST_CHANGES: Lead creates fix tasks → Workers fix → Reviewer re-reviews
 - Optimal: 3-5 teammates total, 5-6 tasks per teammate
+
+### Execution Decision Tree
+
+```
+1 task                → run directly (no worktree)
+2+ independent tasks  → parallel group with worktree isolation
+2+ mixed tasks        → group into parallel phases + sequential steps
+Review                → always 4 parallel read-only agents
+```
 
 ---
 
@@ -456,15 +495,18 @@ paths: "**/*.{ts,tsx,js,jsx}"
    └── Failure → agent gets feedback, fixes, re-runs
 ```
 
-### Standard Loop (with agents)
+### Standard Loop (with parallel agents)
 
 ```
-1. Plan: structure tasks in a plan document
-2. Work: Worker agent(s) implement with self-review
+1. Plan: structure tasks into parallel groups + sequential steps
+2. Work: for each group, spawn N worker agents in parallel (worktree isolation)
+   ├── Merge worktree branches
+   ├── Run sequential tasks
+   └── Repeat for next parallel group
 3. Verify: Stop hook runs validate + build + lint + test
-4. Review: Reviewer agent does read-only multi-perspective review
+4. Review: 4 review agents in parallel (security, performance, quality, accessibility)
    ├── APPROVE → commit
-   └── REQUEST_CHANGES → Worker fixes → re-review
+   └── REQUEST_CHANGES → spawn fix agents (parallel) → re-review
 5. Commit
 ```
 
