@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(sudo:*)",
+      "Bash(rm -rf:*)",
+      "Bash(rm -fr:*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/*id_rsa*)",
+      "Read(**/*id_ed25519*)",
+      "Read(**/.aws/**)",
+      "Read(**/.ssh/**)"
+    ],
+    "ask": [
+      "Bash(rm -r:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push --force:*)",
+      "Bash(git clean -f:*)",
+      "Bash(git clean -fdx:*)",
+      "Bash(git rebase:*)"
+    ]
+  }
+}
