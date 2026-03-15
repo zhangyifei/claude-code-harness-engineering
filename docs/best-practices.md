@@ -510,15 +510,22 @@ paths: "**/*.{ts,tsx,js,jsx}"
 5. Commit
 ```
 
-### Full Loop (with external review)
+### Full Loop (with Codex CLI)
+
+The `/review` skill automatically detects Codex CLI. If `codex` is on `$PATH`, it adds an external second opinion as Step 5:
 
 ```
-1-4. [Same as standard loop]
-5. Codex Review: external second opinion via `codex review`
-   ├── PASS → commit + push
-   └── FAIL → Codex-Fix agent addresses issues → re-review
-6. Commit + push
+1-3. [Same as standard loop]
+4. Review: 4 parallel agents + Codex CLI (if available)
+   ├── 4 internal agents: security, performance, quality, accessibility
+   ├── Codex CLI: `codex review --base main` (external second opinion)
+   ├── Merge all findings into single verdict
+   ├── APPROVE → commit + push
+   └── REQUEST_CHANGES → spawn fix agents (parallel, codex-fix for Codex issues) → re-review
+5. Commit + push
 ```
+
+If Codex is not installed, Step 4 silently skips the Codex pass — the 4-perspective internal review is sufficient on its own.
 
 ---
 

@@ -124,9 +124,34 @@ Any critical issue?
 
 Security vulnerabilities are always **critical**. Performance and quality issues start at **major** unless they're cosmetic. Accessibility issues start at **minor** unless they block core functionality.
 
+## Step 5: Codex CLI Review (if available)
+
+After the 4-perspective review, check if Codex CLI is installed:
+
+```bash
+command -v codex >/dev/null 2>&1
+```
+
+If Codex is available, run an **external second opinion** as an additional review pass:
+
+1. Spawn the `codex-review` agent (if `.claude/agents/codex-review.md` exists) or run directly:
+   ```bash
+   codex review --base main
+   ```
+2. Include Codex findings in the final report under a separate **Codex** section
+3. Codex critical/major issues contribute to the verdict (can upgrade APPROVE → REQUEST_CHANGES)
+
+If Codex is NOT available, skip this step silently — the 4-perspective review is sufficient on its own.
+
+```
+Codex CLI:  [PASS | N issues | SKIPPED (not installed)]
+- [severity] [description]
+```
+
 ## After REQUEST_CHANGES
 
 If the verdict is REQUEST_CHANGES, suggest running `/work` to fix the issues:
 - List each issue as a task
 - Group independent fixes as parallel
+- If the project has a `codex-fix` agent (`.claude/agents/codex-fix.md`), use it for Codex-specific issues
 - Run `/review` again after fixes
