@@ -35,7 +35,7 @@ claude
 
 Then in Claude Code:
 ```
-/setup
+/claude-harness-setup
 ```
 
 This auto-detects your project type (Next.js, Node, Python, Go) and creates:
@@ -49,10 +49,10 @@ This auto-detects your project type (Next.js, Node, Python, Go) and creates:
 ### 3. Use the workflow
 
 ```
-/plan     → Structure tasks with acceptance criteria
-/work     → Implement tasks (with sub-agents for parallel work)
-/review   → 4-perspective code review (security, performance, quality, accessibility)
-/release  → Changelog, version bump, tag preparation
+/claude-harness-plan     → Structure tasks with acceptance criteria
+/claude-harness-work     → Implement tasks (with sub-agents for parallel work)
+/claude-harness-review   → 4-perspective code review (security, performance, quality, accessibility)
+/claude-harness-release  → Changelog, version bump, tag preparation
 ```
 
 ## What's Inside
@@ -60,10 +60,14 @@ This auto-detects your project type (Next.js, Node, Python, Go) and creates:
 ```
 ├── README.md                          ← you are here
 ├── docs/
-│   └── best-practices.md             ← comprehensive guide (all principles + patterns)
+│   ├── best-practices.md             ← comprehensive guide (all principles + patterns)
+│   └── samples/                      ← sample docs/ files for each project type
+│       ├── node/                     ← ARCHITECTURE.md, CONVENTIONS.md, QUALITY.md
+│       ├── python/                   ← ARCHITECTURE.md, CONVENTIONS.md, QUALITY.md
+│       └── go/                       ← ARCHITECTURE.md, CONVENTIONS.md, QUALITY.md
 ├── skills/                            ← 5-verb workflow skills (copy to ~/.claude/skills/)
-│   ├── setup/
-│   │   ├── SKILL.md                  ← /setup — project bootstrap with role selection
+│   ├── claude-harness-setup/
+│   │   ├── SKILL.md                  ← /claude-harness-setup — project bootstrap with role selection
 │   │   ├── templates/                ← project-type configs
 │   │   │   ├── nextjs.md
 │   │   │   ├── node.md
@@ -79,10 +83,10 @@ This auto-detects your project type (Next.js, Node, Python, Go) and creates:
 │   │   └── rules/                    ← rule templates (copied into projects)
 │   │       ├── test-quality.md       ← prevent test tampering
 │   │       └── implementation-quality.md ← prevent hollow implementations
-│   ├── plan/SKILL.md                 ← /plan — structured planning
-│   ├── work/SKILL.md                 ← /work — implement from plan
-│   ├── review/SKILL.md               ← /review — multi-perspective review
-│   └── release/SKILL.md              ← /release — changelog + version + tag
+│   ├── claude-harness-plan/SKILL.md                 ← /claude-harness-plan — structured planning
+│   ├── claude-harness-work/SKILL.md                 ← /claude-harness-work — implement from plan
+│   ├── claude-harness-review/SKILL.md               ← /claude-harness-review — multi-perspective review
+│   └── claude-harness-release/SKILL.md              ← /claude-harness-release — changelog + version + tag
 └── user-config/                       ← user-level Claude Code config
     ├── CLAUDE.md                      ← baseline preferences for ~/.claude/CLAUDE.md
     └── settings.json                  ← permission deny/ask lists for ~/.claude/settings.json
@@ -93,6 +97,29 @@ This auto-detects your project type (Next.js, Node, Python, Go) and creates:
 ### CLAUDE.md as a Map (not a manual)
 
 ~40 lines max. Answers three questions: What commands? Where is the code? What invariants? Points to `docs/` for everything else.
+
+### How `docs/` Works in the Framework
+
+Every project gets a `docs/` folder with three files. These are not just documentation — they're **active context** that agents read before every task:
+
+```
+docs/
+├── ARCHITECTURE.md       ← agents read before implementation (tech stack, boundaries, data flow)
+├── CONVENTIONS.md        ← agents read before writing code (naming, patterns, golden rules)
+├── QUALITY.md            ← agents read before review (known gaps, grade per area)
+└── design-docs/          ← agents read on-demand when CLAUDE.md points here
+```
+
+**Who reads what:**
+
+| Workflow | Reads |
+|----------|-------|
+| `/claude-harness-plan` | ARCHITECTURE.md, CONVENTIONS.md, QUALITY.md — to scope tasks correctly |
+| `/claude-harness-work` | CONVENTIONS.md — each implementation agent reads before coding |
+| `/claude-harness-review` | All three — review agents check code against conventions and known gaps |
+| **Architect agent** | ARCHITECTURE.md — updates it when boundaries change |
+
+**Sample docs** for Node.js, Python, and Go are in [`docs/samples/`](docs/samples/). Use them as a starting point — `/claude-harness-setup` generates these tailored to your project.
 
 ### Progressive Disclosure
 

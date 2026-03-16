@@ -2,7 +2,7 @@
 description: "Prepare a release: changelog, version bump, tag. Trigger: user says 'release', 'cut a release', 'prepare release', 'changelog'."
 ---
 
-# /release — Release Preparation
+# /claude-harness-release — Release Preparation
 
 Prepare the project for a release: changelog, version bump, git tag.
 

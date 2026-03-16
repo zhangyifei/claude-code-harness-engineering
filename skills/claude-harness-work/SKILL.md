@@ -2,7 +2,7 @@
 description: "Implement tasks from the plan. Trigger: user says 'work', 'implement', 'build it', 'do it', or wants to start coding."
 ---
 
-# /work — Implementation
+# /claude-harness-work — Implementation
 
 Implement tasks from `Plans.md` (or a direct request if no plan exists).
 
@@ -16,7 +16,7 @@ If `Plans.md` exists:
 
 If no plan exists:
 1. Implement the user's direct request
-2. Suggest running `/plan` first for larger features
+2. Suggest running `/claude-harness-plan` first for larger features
 
 ## Step 2: Execute Tasks
 

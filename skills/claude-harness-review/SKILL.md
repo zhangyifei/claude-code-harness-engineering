@@ -2,7 +2,7 @@
 description: "Multi-perspective code review. Trigger: user says 'review', 'check my code', 'review changes', or wants quality feedback."
 ---
 
-# /review — Parallel Code Review
+# /claude-harness-review — Parallel Code Review
 
 Review recent changes from 4 perspectives simultaneously: security, performance, quality, accessibility.
 
@@ -150,8 +150,8 @@ Codex CLI:  [PASS | N issues | SKIPPED (not installed)]
 
 ## After REQUEST_CHANGES
 
-If the verdict is REQUEST_CHANGES, suggest running `/work` to fix the issues:
+If the verdict is REQUEST_CHANGES, suggest running `/claude-harness-work` to fix the issues:
 - List each issue as a task
 - Group independent fixes as parallel
 - If the project has a `codex-fix` agent (`.claude/agents/codex-fix.md`), use it for Codex-specific issues
-- Run `/review` again after fixes
+- Run `/claude-harness-review` again after fixes
