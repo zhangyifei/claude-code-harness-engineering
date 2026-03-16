@@ -2,7 +2,7 @@
 description: "Create or update a structured implementation plan. Trigger: user says 'plan', 'let's plan', 'break this down', or describes a feature to build."
 ---
 
-# /plan — Structured Planning
+# /claude-harness-plan — Structured Planning
 
 Create a structured plan document for the current task.
 
@@ -57,7 +57,7 @@ Create `Plans.md` in the project root (or update if it exists) with this structu
 - Each task should be a self-contained unit of work (completable by one agent)
 - List the specific files each task will touch
 - Keep tasks small: 3-5 tasks per parallel group is ideal
-- **Explicitly group tasks as parallel or sequential** — `/work` uses these groups to decide execution strategy
+- **Explicitly group tasks as parallel or sequential** — `/claude-harness-work` uses these groups to decide execution strategy
 - Tasks are parallel-safe when they touch **different files** — if two tasks modify the same file, they must be sequential
 - Include acceptance criteria that are mechanically verifiable (tests, build, lint)
 
@@ -68,4 +68,4 @@ Present the plan and ask:
 - Are the parallel groups correct? (no file conflicts within a group)
 - Any ordering constraints I missed?
 
-After approval, the user can run `/work` to start implementation.
+After approval, the user can run `/claude-harness-work` to start implementation.

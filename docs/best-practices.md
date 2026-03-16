@@ -266,28 +266,29 @@ Hooks enforce behavior at runtime — they're the mechanical enforcement layer.
 
 ### Back-Pressure Hook Pattern (verify.sh)
 
-The most impactful hook — runs on Stop, silent when green, re-engages on red:
+The most impactful hook — runs on Stop, silent when green, re-engages on red. Examples for each project type:
+
+#### Node.js
 
 ```bash
 #!/bin/bash
-# .claude/scripts/verify.sh — back-pressure hook
+# .claude/scripts/verify.sh — back-pressure hook (Node.js)
 set -euo pipefail
 
 errors=()
 
-# Validation (project-specific)
-if npm run validate-data 2>&1 | grep -q "FAIL"; then
-  errors+=("Data validation failed — run 'npm run validate-data' and fix")
-fi
-
-# Build
 if ! npm run build --silent 2>/dev/null; then
   errors+=("Build failed — run 'npm run build' and fix TypeScript errors")
 fi
 
-# Lint
 if ! npm run lint --silent 2>/dev/null; then
   errors+=("Lint failed — run 'npm run lint' and fix warnings")
+fi
+
+if npm run test --silent 2>/dev/null; then
+  : # tests pass
+elif [ $? -ne 0 ] 2>/dev/null; then
+  errors+=("Tests failed — run 'npm run test' and fix failures")
 fi
 
 if [ ${#errors[@]} -gt 0 ]; then
@@ -298,6 +299,78 @@ if [ ${#errors[@]} -gt 0 ]; then
   exit 2  # exit 2 = feedback to agent
 fi
 # Silent on success — don't waste context
+```
+
+#### Python
+
+```bash
+#!/bin/bash
+# .claude/scripts/verify.sh — back-pressure hook (Python)
+set -euo pipefail
+
+errors=()
+
+if command -v ruff &> /dev/null; then
+  if ! ruff check . 2>/dev/null; then
+    errors+=("Lint failed — run 'ruff check .' and fix issues")
+  fi
+fi
+
+if command -v mypy &> /dev/null; then
+  if ! python -m mypy . 2>/dev/null; then
+    errors+=("Type check failed — run 'python -m mypy .' and fix errors")
+  fi
+fi
+
+if [ -f "pyproject.toml" ] || [ -d "tests" ]; then
+  if ! python -m pytest --tb=short -q 2>/dev/null; then
+    errors+=("Tests failed — run 'python -m pytest' and fix failures")
+  fi
+fi
+
+if [ ${#errors[@]} -gt 0 ]; then
+  echo "=== VERIFICATION FAILED ==="
+  for e in "${errors[@]}"; do echo "- $e"; done
+  echo ""
+  echo "Fix these issues before completing work."
+  exit 2
+fi
+```
+
+#### Go
+
+```bash
+#!/bin/bash
+# .claude/scripts/verify.sh — back-pressure hook (Go)
+set -euo pipefail
+
+errors=()
+
+if ! go build ./... 2>/dev/null; then
+  errors+=("Build failed — run 'go build ./...' and fix errors")
+fi
+
+if ! go vet ./... 2>/dev/null; then
+  errors+=("Vet failed — run 'go vet ./...' and fix issues")
+fi
+
+if ! go test ./... -count=1 -short 2>/dev/null; then
+  errors+=("Tests failed — run 'go test ./...' and fix failures")
+fi
+
+if command -v golangci-lint &> /dev/null; then
+  if ! golangci-lint run 2>/dev/null; then
+    errors+=("Lint failed — run 'golangci-lint run' and fix issues")
+  fi
+fi
+
+if [ ${#errors[@]} -gt 0 ]; then
+  echo "=== VERIFICATION FAILED ==="
+  for e in "${errors[@]}"; do echo "- $e"; done
+  echo ""
+  echo "Fix these issues before completing work."
+  exit 2
+fi
 ```
 
 ### Agent Hooks (LLM-powered)
@@ -315,6 +388,8 @@ From claude-code-harness — use a cheap model (haiku) for lightweight checks:
 
 ### Hook Configuration (.claude/settings.json)
 
+The `hooks` block is the same for all project types — only `permissions.allow` changes.
+
 ```json
 {
   "hooks": {
@@ -324,14 +399,63 @@ From claude-code-harness — use a cheap model (haiku) for lightweight checks:
         "type": "command",
         "command": "bash .claude/scripts/verify.sh"
       }]
+    }],
+    "PostToolUse": [{
+      "matcher": "Write|Edit",
+      "hooks": [{
+        "type": "agent",
+        "prompt": "Review this code change for: (1) hardcoded secrets or API keys, (2) TODO/FIXME stubs without implementation, (3) obvious security issues (SQL injection, XSS, command injection). If issues found, include them in systemMessage as warnings. If clean, return nothing. Input: $ARGUMENTS",
+        "model": "haiku",
+        "timeout": 30
+      }]
     }]
-  },
+  }
+}
+```
+
+#### Node.js permissions.allow
+
+```json
+{
   "permissions": {
     "allow": [
       "Bash(npm run build)",
       "Bash(npm run lint)",
       "Bash(npm run test)",
+      "Bash(npm run start)",
       "Bash(npm run dev)"
+    ]
+  }
+}
+```
+
+#### Python permissions.allow
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest*)",
+      "Bash(python -m mypy*)",
+      "Bash(ruff check*)",
+      "Bash(ruff format*)",
+      "Bash(python -m*)"
+    ]
+  }
+}
+```
+
+#### Go permissions.allow
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(go build*)",
+      "Bash(go test*)",
+      "Bash(go vet*)",
+      "Bash(go run*)",
+      "Bash(golangci-lint*)"
     ]
   }
 }
@@ -364,9 +488,8 @@ From claude-code-harness's settings.json — safe defaults for any project:
       "Bash(git push -f:*)",
       "Bash(git push --force:*)",
       "Bash(git clean -f:*)",
-      "Bash(git rebase:*)",
-      "Bash(npm install:*)",
-      "Bash(npx:*)"
+      "Bash(git clean -fdx:*)",
+      "Bash(git rebase:*)"
     ]
   }
 }
